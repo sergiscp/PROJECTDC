@@ -1,0 +1,126 @@
+\documentclass{article}
+\usepackage{blindtext}
+\usepackage{multicol}
+\usepackage[spanish]{babel}
+\title{Proyecto Ciencia de Datos Reproducible}
+\author{Sergi Colom Pijuan}
+\date{17/09/2025}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\maketitle
+
+\section{Introducción}
+El cambio climático representa actualmente uno de los mayores desafíos del 
+siglo XXI. Este proyecto analiza las emisiones de Co2, así como su distribución entre 
+países. La base de datos utilizada és; CO2 and Greenhouse Gas Emissions, publicada por Our World in Data.A fin de realizar un proyecto reproductible,los datos elegidos para el análisis son publios y de código abierto, permitiendo su trazabilidad.
+Los objetivos principales del proyecto son; analizar la distribución de emisiones de CO2, así como los países con unas emisiones acumuladas mas destacadas.  
+
+
+
+\section{Tabla}
+
+<<tabla_emisiones, echo=FALSE, results=tex>>=
+library(dplyr)
+library(knitr)
+library(xtable)
+
+df<-read.csv("../Datos/Base_Datos_Original.csv")
+countries_un <- c(
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
+  "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain",
+  "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia",
+  "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso",
+  "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic",
+  "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia",
+  "Cuba", "Cyprus", "Czech Republic", "Democratic Republic of the Congo", "Denmark",
+  "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador",
+  "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland",
+  "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada",
+  "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary",
+  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica",
+  "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos",
+  "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania",
+  "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands",
+  "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia",
+  "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands",
+  "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway",
+  "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines",
+  "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis",
+  "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe",
+  "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia",
+  "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka",
+  "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand",
+  "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan",
+  "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States",
+  "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen",
+  "Zambia", "Zimbabwe"
+)
+df_onu <- df[df$country %in% countries_un, ]
+
+resumen_paises <- df_onu %>%
+  group_by(country) %>%
+  summarise(
+    media_co2 = mean(co2, na.rm = TRUE),
+    max_co2   = max(co2, na.rm = TRUE),
+    total_co2   = sum(co2, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  arrange(desc(media_co2)) %>%
+  slice_head(n = 10)%>%
+  select(country, media_co2, max_co2, total_co2)
+print(xtable(resumen_paises, 
+             caption = "Top 10 paises emisores de CO2 (Millones de Tonas)",
+             digits = c(0,0,0,0,0)), 
+      include.rownames = FALSE)
+
+@
+Esta tabla muestra  indicadores de los 10 países con emisiones  de CO2 entre el periodo de 1750 y 2023. Estados Unidos, China y Rusia son los países más destacados, mostrando unas emisiones totales muy superiores a los países restantes. China muestra las emissiones máximas y medias mas elevadas,mientras Estados Unidos és el país con la mayor emision total. Estos indicadores sugieren las altas emisiones de China durante un periodo breve. El resto de países aun siendo  potencias mundiales, presentan distancia con China y EE.UU.. 
+\section{Gràficos}
+
+<<grafico, echo=TRUE, fig=TRUE, width=5, height=3>>=
+library(ggplot2)
+df_world <- subset(df, country == "World")
+
+ggplot(df_world, aes(x = year, y = co2)) +
+  geom_point(color = "steelblue", size = 2) +
+  geom_smooth(method = "loess", se = FALSE, color = "darkblue") +
+  labs(
+       x = "Año",
+       y = "Emissiones CO2 (MtCO2)") +
+  theme_minimal()
+df_world <- subset(df, country == "World")
+
+@
+
+
+<<grafico2, echo=FALSE>>=
+
+totales <- colSums(df_world[, c("co2", "coal_co2", "oil_co2", "flaring_co2","gas_co2","cement_co2","other_industry_co2")], na.rm = TRUE)
+
+totales_df <- data.frame(
+  variable = names(totales),
+  total = as.numeric(totales)
+)
+library(ggplot2)
+nombres_personalizados <- c("CO2_otros","CO2_en_llamas", "CO2_cemento"  , "CO2_gas"      , "CO2_petróleo" , "CO2_carbón"   ,"CO2_total")
+
+@
+<<code, echo=FALSE, fig=TRUE,tidy=TRUE, width=5, height=3>>=
+ggplot(totales_df, aes(x = total, y = reorder(variable, total))) +
+  geom_col(fill = "steelblue") +
+labs(
+       x = "Emisiones de CO2 en millones de tonas",
+       y = "Combustibles") +
+  scale_y_discrete(labels = nombres_personalizados) +
+  theme_minimal()
+@
+
+Estos gráficos muestran, por una parte, la evolución global de las emisiones de CO2, mientras el segundo muestra la diferencia entre los combustibles (fuentes) de combustión.
+El primer gráfico muestra el evidente incremento de emisiones de dióxido de carbono. Se observa claramente un punto de inflexión entre el año  1925 y 1950, en ese periodo las emisiones  globales incrementan de forma continua sin retroceder. 
+El segundo gráfico muestra los combustibles (fuentes) responsables de las emisiones,incrementadas en la ultima mitad de siglo. El total de emisiones de CO2 se fragmentan principalmente en tres combustibles fósiles, carbón, petróleo y gas, respectivamente son los combustibles fósiles responsables de las emisiones, combustibles ecológicamente limitados que provocan emisiones con efectos duraderos.   
+\section{Conclusiones}
+
+Finalmente, el análisis muestra un alto incremento de emisiones de CO2, incremento reciente producido en un corto periodo de tiempo. Estas emisiones, muestran como determinados países son responsables de emisiones que destacan respecto el resto de territorios. En referencia a las altas emisiones globales, los principales representantes son los combustibles fósiles como el carbón, petroleo o gas.
+\end {document}
+ 
