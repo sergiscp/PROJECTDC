@@ -1,0 +1,148 @@
+\documentclass{beamer}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\begin{frame}
+\frametitle{Contenidos}
+
+Esta presentación incluye:
+\begin{itemize}
+\item Tabla
+\item Gráficos 
+\item Gráficos
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Tablas}
+Tabla resumen de indicadores de emisiones de CO2
+
+
+<<tabla_emisiones, echo=FALSE, results=tex>>=
+library(dplyr)
+library(knitr)
+library(xtable)
+
+df<-read.csv("../Datos/Base_Datos_Original.csv")
+
+countries_un <- c(
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
+  "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain",
+  "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia",
+  "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso",
+  "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic",
+  "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia",
+  "Cuba", "Cyprus", "Czech Republic", "Democratic Republic of the Congo", "Denmark",
+  "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador",
+  "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland",
+  "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada",
+  "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary",
+  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica",
+  "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos",
+  "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania",
+  "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands",
+  "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia",
+  "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands",
+  "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway",
+  "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines",
+  "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis",
+  "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe",
+  "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia",
+  "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka",
+  "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand",
+  "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan",
+  "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States",
+  "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen",
+  "Zambia", "Zimbabwe"
+)
+df_onu <- df[df$country %in% countries_un, ]
+
+resumen_paises <- df_onu %>%
+  group_by(country) %>%
+  summarise(
+    media_co2 = mean(co2, na.rm = TRUE),
+    max_co2   = max(co2, na.rm = TRUE),
+    total_co2   = sum(co2, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  arrange(desc(media_co2)) %>%
+  slice_head(n = 10)%>%
+  select(country, media_co2, max_co2, total_co2)
+print(xtable(resumen_paises, 
+             caption = "Top 10 paises emisores de CO2 (Millones de Tonas)",
+             digits = c(0,0,0,0,0)), 
+      include.rownames = FALSE)
+
+@
+
+
+\end{frame}
+
+
+
+
+
+
+
+\begin{frame}
+\frametitle{Gráficos}
+Las emissiones de CO2 Globales(Millones de Tonas) muestran un incremento exponencial desde la mitad del siglo XX.
+\vspace{0.5cm}
+
+<<grafico1, echo=FALSE, fig=TRUE, width=5, height=3>>=
+library(ggplot2)
+df_world <- subset(df, country == "World")
+
+ggplot(df_world, aes(x = year, y = co2)) +
+  geom_point(color = "steelblue", size = 2) +
+  geom_smooth(method = "loess", se = FALSE, color = "darkblue") +
+  labs(
+       x = "Año",
+       y = "CO₂") +
+  theme_minimal()
+@
+
+
+
+\textbf{Gráfico 1. Evolución emisiones CO2}
+
+\end{frame}
+
+
+
+
+
+\begin{frame}[fragile]
+\frametitle{Gráficos}
+\tiny
+<<grafico2, echo=FALSE>>=
+
+totales <- colSums(df_world[, c("co2", "coal_co2", "oil_co2", "flaring_co2","gas_co2","cement_co2","other_industry_co2")], na.rm = TRUE)
+
+totales_df <- data.frame(
+  variable = names(totales),
+  total = as.numeric(totales)
+)
+library(ggplot2)
+nombres_personalizados <- c("CO2_otros","CO2_en_llamas", "CO2_cemento"  , "CO2_gas"      , "CO2_petróleo" , "CO2_carbón"   ,"CO2_total")
+
+@
+<<code, echo=TRUE, fig=TRUE,tidy=TRUE, width=5, height=3>>=
+ggplot(totales_df, aes(x = total, y = reorder(variable, total))) +
+  geom_col(fill = "steelblue") +
+labs(
+       x = "Emisiones de CO2 en millones de tonas",
+       y = "Combustibles") +
+  scale_y_discrete(labels = nombres_personalizados) +
+  theme_minimal()
+@
+
+\textbf{Gráfico 2. Emisiones de CO2 por combustible}
+
+\end{frame}
+
+
+\end{document}
