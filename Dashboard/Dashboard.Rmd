@@ -1,23 +1,28 @@
 ---
-
 title: "Dashboard Emisiones Globales de CO₂"
 output: 
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
 runtime: shiny
-    
 ---
 
+Gràficos {data-icon="fa-signal"}
+==============================================================
 ```{r setup, include=FALSE}
+#Llibreries, instaleu mab packages.install()si es necesari
 library(flexdashboard)
 library(plotly)
 library(dplyr)
 library(ggplot2)
+library(DT)
+library(rsconnect)
+library(plotly)
+library(RColorBrewer)
+
 #Cargar base de datos
 
-df<-read.csv("../Datos/Base_Datos_Original.csv")
-
+df <- read.csv("../Datos/Base_Datos_Original.csv")
 df_world <- subset(df, country == "World")
 
 countries_list <- c(
@@ -64,8 +69,7 @@ Column {data-width=450}
 library(plotly)
 library(RColorBrewer)
 
-# Elegimos una paleta de RColorBrewer
-pal <- colorRampPalette(brewer.pal(9, "YlOrRd"))(100)  # Amarillo → Rojo
+pal <- colorRampPalette(brewer.pal(9, "YlOrRd"))(100)  
 
 fig <- plot_ly(
   df_onu,
@@ -98,7 +102,7 @@ fig
 
 ```
 
-Column {data-width=350}
+Column {data-width=450}
 -----------------------------------------------------------------------
 
 ### Chart B
@@ -184,7 +188,7 @@ shinyApp(ui, server)
 
 ### Chart C
 
-```{r}
+```{r,fig.width=12, fig.height=5}
 colores_formales <- c(
   "#4C78A8",  # Azul oscuro
   "#9ECae9",  # Azul claro apagado
@@ -227,3 +231,32 @@ ggplot(df_top10, aes(x = year, y = co2, fill = country)) +
   scale_y_continuous(labels = scales::comma)
 ```
 
+Tablas {data-icon="fa-table"}
+====================================================================
+```{r}
+library(shiny)
+library(DT)
+library(dplyr)
+selectInput("sel_pais", "Selecciona País:",
+            choices = c("Todos", unique(df_top10$country)),
+            selected = "Todos")
+
+selectInput("sel_year", "Selecciona Año:",
+            choices = c("Todos", unique(df_top10$year)),
+            selected = "Todos")
+
+# Tabla interactiva que depende de los selectores
+DT::renderDT({
+  df_filtrado <- df_top10
+  if(input$sel_pais != "Todos") df_filtrado <- df_filtrado %>% filter(country == input$sel_pais)
+  if(input$sel_year != "Todos") df_filtrado <- df_filtrado %>% filter(year == input$sel_year)
+  datatable(df_filtrado, options = list(pageLength = 10, searching = TRUE))
+})
+```
+
+Acerca del esetudio {data-icon="fa-globe"}
+====================================================================
+Este estudio analiza la evolución de las emisiones de CO2 a lo largo del tiempo,tanto a nivel gloval como Regional. En este dashboard se presenta una con las evoluciones de emissiones por paise, los pises con mayores emisiones de CO2, y una evolucion del consume de los combustibles que las emiten. 
+Los datos utilizados en este estudio provienen de Our World in Data, específicamente de la base de datos:
+
+Our World in Data. "CO₂ and Greenhouse Gas Emissions." Disponible en: https://ourworldindata.org/co2-and-other-greenhouse-gas-emissions
