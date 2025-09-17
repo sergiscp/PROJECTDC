@@ -1,0 +1,19 @@
+---
+title: "Cargar_Datos"
+output: html_document
+---
+
+
+
+En el archivo Readme.md, que se encuentra en la raiz del proyecto el código es el siguiente:
+```{r}
+df<-read.csv("Datos/Base_Datos_Original.csv")
+
+```
+
+En los archivos .Rmd que no se encuentran a la raíz, como la presentación, dashboard o informe, se usa el siguiente codigo:
+```{r}
+df<-read.csv("../Datos/Base_Datos_Original.csv")
+
+```
+Al descargar el proyecto, dependiendo de si se abre un archivo individual o el proyecto completo, es importante vigilar el código de importación de datos.
