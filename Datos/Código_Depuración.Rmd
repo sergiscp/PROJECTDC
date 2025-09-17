@@ -1,5 +1,0 @@
----
-title: "Código_Depuración"
-output: html_document
----
-
