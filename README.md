@@ -65,7 +65,7 @@ df<-read.csv("Datos/Base_Datos_Original.csv")
 df<-read.csv("../Datos/Base_Datos_Original.csv")
 
 ```
-Librerias necesarias para reproducir el proyecto:
+Librerias necesarias para reproducir el proyecto, se pueden instalar con install.packages():
 ```r
 library(flexdashboard)
 library(plotly)
@@ -79,4 +79,10 @@ library(xtable)
 library(knitr)
 ```
 
-### Resultados principales del proyecto
+### Resultados del proyecto:
+
+Las emisiones de CO₂ a nivel global muetran un crecimiento significativo durante los últimos 300 anys.
+A inicios de los anys cincuenta (1950), y en un periodo de cincuenta años, las emisiones pasa de 50 mil (MtCO₂), a 20 mil (MtCO₂).
+Este crecimiento a nivel global es significativo dado que no se muestran cambios  en el crecimiento de emisiones en los años anteriores
+El crecimiento en emisiones, no disminuye en las posteriores décadas, por lo contrario a partir sigue un incremento importante,
+posteriormente de los anys 2000 hacia adelante aún muestra un incremento más rápido. Estas emisiones incrementadas a lo largo del tiempo, están principalmente provocadas por la quema de combustibles fósiles.
