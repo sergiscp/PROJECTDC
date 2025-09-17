@@ -1,0 +1,229 @@
+---
+
+title: "Dashboard Emisiones Globales de CO₂"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+    
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(plotly)
+library(dplyr)
+library(ggplot2)
+#Cargar base de datos
+
+df<-read.csv("../Datos/Base_Datos_Original.csv")
+
+df_world <- subset(df, country == "World")
+
+countries_list <- c(
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
+  "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain",
+  "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia",
+  "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso",
+  "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic",
+  "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia",
+  "Cuba", "Cyprus", "Czech Republic", "Democratic Republic of the Congo", "Denmark",
+  "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador",
+  "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland",
+  "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada",
+  "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary",
+  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica",
+  "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos",
+  "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania",
+  "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands",
+  "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia",
+  "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands",
+  "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway",
+  "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines",
+  "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis",
+  "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe",
+  "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia",
+  "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka",
+  "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand",
+  "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan",
+  "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States",
+  "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen",
+  "Zambia", "Zimbabwe"
+)
+
+# Filtrar el dataframe df para que solo incluya países miembros de la ONU
+df_onu <- df[df$country %in% countries_list, ]
+```
+
+Column {data-width=450}
+-----------------------------------------------------------------------
+
+### Chart A
+
+```{r}
+library(plotly)
+library(RColorBrewer)
+
+# Elegimos una paleta de RColorBrewer
+pal <- colorRampPalette(brewer.pal(9, "YlOrRd"))(100)  # Amarillo → Rojo
+
+fig <- plot_ly(
+  df_onu,
+  type = 'choropleth',
+  locations = ~country,
+  locationmode = 'country names',
+  z = ~co2,
+  frame = ~year,
+  colorscale = pal,                # usamos la paleta predefinida
+  text = ~paste('<b>', country, '</b>',
+                '<br>CO₂:', co2, 'Mt'),
+  hoverinfo = 'text',
+  marker = list(line = list(color = 'white', width = 0.5))
+)
+
+fig <- fig %>% layout(
+  title = list(text = 'Emisiones de CO₂ por país', x = 0.5),
+  geo = list(
+    showframe = FALSE,
+    showcoastlines = TRUE,
+    projection = list(type = 'natural earth'),
+    bgcolor = 'rgba(0,0,0,0)',
+    lakecolor = 'lightblue'
+  ),
+  colorbar = list(title = 'Mt CO₂')
+)
+
+fig
+
+
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+library(shiny)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# --- Preprocesamiento ---
+# Aquí usamos toda la base df (no solo World)
+df_lineas <- df %>%   # usa tu base completa con columna country
+  group_by(country, year) %>%
+  summarise(
+    CO2_carbón   = sum(coal_co2, na.rm = TRUE),
+    CO2_petróleo = sum(oil_co2, na.rm = TRUE),
+    CO2_gas      = sum(gas_co2, na.rm = TRUE),
+    CO2_llamas   = sum(flaring_co2, na.rm = TRUE),
+    CO2_cemento  = sum(cement_co2, na.rm = TRUE),
+    CO2_otros    = sum(other_industry_co2, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = -c(country, year),
+    names_to = "fuente",
+    values_to = "co2"
+  )
+
+# --- UI ---
+ui <- fluidPage(
+  titlePanel("Emisiones de CO₂ por país y fuente"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput(
+        inputId = "pais_sel",
+        label = "Selecciona un país:",
+        choices = sort(unique(df_lineas$country)),
+        selected = "World"   # por defecto World
+      ),
+      checkboxGroupInput(
+        inputId = "fuentes_sel",
+        label = "Selecciona fuentes de emisiones a mostrar:",
+        choices = unique(df_lineas$fuente),
+        selected = unique(df_lineas$fuente)
+      )
+    ),
+    
+    mainPanel(
+      plotOutput("grafico_emisiones", height = "500px", width = "800px")
+    )
+  )
+)
+
+# --- Server ---
+server <- function(input, output) {
+  
+  output$grafico_emisiones <- renderPlot({
+    # Filtrar según país y fuentes seleccionadas
+    df_filtrado <- df_lineas %>%
+      filter(country == input$pais_sel, fuente %in% input$fuentes_sel)
+    
+    ggplot(df_filtrado, aes(x = year, y = co2, color = fuente)) +
+      geom_smooth(method = "loess", se = FALSE, span = 0.3, linewidth = 1) +
+      labs(
+        title = paste("Evolución de emisiones de CO₂ en", input$pais_sel),
+        x = "Año",
+        y = "Emisiones (MtCO₂)",
+        color = "Fuente"
+      ) +
+      theme_minimal(base_size = 13) +
+      scale_color_brewer(palette = "Set2")
+  })
+}
+
+# Ejecutar la app
+shinyApp(ui, server)
+
+
+
+```
+
+### Chart C
+
+```{r}
+colores_formales <- c(
+  "#4C78A8",  # Azul oscuro
+  "#9ECae9",  # Azul claro apagado
+  "#6B6ECF",  # Violeta sobrio
+  "#637939",  # Verde oliva apagado
+  "#8C6D31",  # Marrón tostado
+  "#843C39",  # Burdeos profundo
+  "#7B4173",  # Violeta grisáceo
+  "#525252",  # Gris oscuro
+  "#969696",  # Gris medio
+  "#BDBDBD"   # Gris claro
+)
+
+library(dplyr)
+library(ggplot2)
+
+# 1. Obtener los 10 países con más emisiones acumuladas
+top10_paises <- df_onu %>%
+  group_by(country) %>%
+  summarise(total_CO2 = sum(co2, na.rm = TRUE)) %>%
+  arrange(desc(total_CO2)) %>%
+  slice(1:10) %>%
+  pull(country)
+
+# 2. Filtrar datos solo para esos 10 países
+df_top10 <- df_onu %>%
+  filter(country %in% top10_paises)
+
+# 3. Crear gráfico de áreas apiladas
+ggplot(df_top10, aes(x = year, y = co2, fill = country)) +
+  geom_area() +
+  labs(
+    title = "Evolución de los 10 países con mayores emisiones de CO2",
+    x = "Año",
+    y = "Emisiones anuales de CO2 (millones de toneladas)",
+    fill = "País"
+  ) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Paired") +
+  scale_y_continuous(labels = scales::comma)
+```
+
